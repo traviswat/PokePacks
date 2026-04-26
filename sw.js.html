@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PokéPacks — Open. Collect. Trade.</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PokéPacks">
+<meta name="theme-color" content="#FFD700">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #FFD700;
+    --gold2: #FFA500;
+    --red: #E3350D;
+    --dark: #0a0a0f;
+    --card-bg: #13131f;
+    --surface: #1a1a2e;
+    --surface2: #22223a;
+    --text: #f0f0ff;
+    --muted: #8888aa;
+    --common: #aaaacc;
+    --uncommon: #44dd88;
+    --rare: #4488ff;
+    --legendary: #ff44cc;
+    --secret: #FFD700;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* STARFIELD BG */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 20%, rgba(100,50,200,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(200,50,100,0.1) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 50%, rgba(20,20,50,1) 0%, transparent 100%);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* NAV */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    background: rgba(10,10,20,0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,215,0,0.2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2rem;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, var(--gold), var(--gold2), #ff6600);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .nav-tabs {
+    display: flex;
+    gap: 8px;
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--muted);
+    padding: 8px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .tab-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+  .tab-btn.active {
+    background: linear-gradient(135deg, var(--gold), var(--gold2));
+    color: #000;
+    border-color: transparent;
+  }
+
+  .coins-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,215,0,0.1);
+    border: 1px solid rgba(255,215,0,0.3);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-weight: 900;
+    color: var(--gold);
+    font-size: 1rem;
+  }
+
+  /* PAGES */
+  .page { display: none; padding: 32px; max-width: 1200px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* SHOP PAGE */
+  .page-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 3rem;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #fff, var(--muted));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .page-subtitle { color: var(--muted); margin-bottom: 32px; font-size: 0.95rem; }
+
+  .pack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 24px;
+  }
+
+  .pack-card {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 28px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pack-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: 20px;
+  }
+
+  .pack-card:hover { transform: translateY(-6px); border-color: rgba(255,215,0,0.4); }
+  .pack-card:hover::before { opacity: 1; }
+
+  .pack-card.basic::before { background: linear-gradient(135deg, rgba(100,200,255,0.05), transparent); }
+  .pack-card.rare-pack::before { background: linear-gradient(135deg, rgba(100,100,255,0.08), transparent); }
+  .pack-card.legendary-pack::before { background: linear-gradient(135deg, rgba(255,100,200,0.08), transparent); }
+  .pack-card.secret-pack::before { background: linear-gradient(135deg, rgba(255,215,0,0.1), transparent); }
+
+  .pack-icon { font-size: 5rem; margin-bottom: 16px; display: block; filter: drop-shadow(0 0 20px rgba(255,215,0,0.4)); }
+
+  .pack-name {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.6rem;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .pack-desc { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; line-height: 1.5; }
+
+  .pack-odds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .rarity-badge {
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .rarity-badge.common { background: rgba(170,170,204,0.15); color: var(--common); border: 1px solid rgba(170,170,204,0.3); }
+  .rarity-badge.uncommon { background: rgba(68,221,136,0.1); color: var(--uncommon); border: 1px solid rgba(68,221,136,0.3); }
+  .rarity-badge.rare { background: rgba(68,136,255,0.1); color: var(--rare); border: 1px solid rgba(68,136,255,0.3); }
+  .rarity-badge.legendary { background: rgba(255,68,204,0.1); color: var(--legendary); border: 1px solid rgba(255,68,204,0.3); }
+  .rarity-badge.secret { background: rgba(255,215,0,0.1); color: var(--secret); border: 1px solid rgba(255,215,0,0.3); }
+
+  .buy-btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+
+  .buy-btn:hover { transform: scale(1.03); }
+
+  .pack-card.basic .buy-btn { background: linear-gradient(135deg, #4af, #06f); color: #fff; }
+  .pack-card.rare-pack .buy-btn { background: linear-gradient(135deg, #88f, #44f); color: #fff; }
+  .pack-card.legendary-pack .buy-btn { background: linear-gradient(135deg, #f4c, #a0f); color: #fff; }
+  .pack-card.secret-pack .buy-btn { background: linear-gradient(135deg, var(--gold), var(--gold2)); color: #000; }
+
+  /* OPENING MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  .opening-stage {
+    text-align: center;
+    width: 100%;
+    max-width: 900px;
+    padding: 32px;
+  }
+
+  .opening-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2.5rem;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin-bottom: 32px;
+    animation: pulse-glow 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { text-shadow: 0 0 20px rgba(255,215,0,0.5); }
+    50% { text-shadow: 0 0 40px rgba(255,215,0,1), 0 0 60px rgba(255,165,0,0.5); }
+  }
+
+  /* PACK OPEN ANIMATION */
+  .pack-reveal-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .giant-pack {
+    font-size: 10rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    animation: float 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 30px rgba(255,215,0,0.6));
+    user-select: none;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(-2deg); }
+    50% { transform: translateY(-15px) rotate(2deg); }
+  }
+
+  .giant-pack:hover { filter: drop-shadow(0 0 50px rgba(255,215,0,1)); transform: scale(1.05); }
+
+  .click-hint {
+    color: var(--muted);
+    font-size: 1rem;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* CARDS REVEAL */
+  .cards-reveal {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    width: 100%;
+  }
+
+  .cards-reveal.active { display: flex; }
+
+  .cards-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .reveal-card {
+    width: 120px;
+    height: 168px;
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: card-enter 0.4s ease both;
+  }
+
+  @keyframes card-enter {
+    from { opacity: 0; transform: translateY(40px) scale(0.8); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .reveal-card.flipped { transform: rotateY(180deg); }
+
+  .card-front, .card-back {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .card-back {
+    background: linear-gradient(135deg, #1a1a3e, #0a0a2a);
+    border: 2px solid rgba(255,215,0,0.3);
+    font-size: 2.5rem;
+  }
+
+  .card-back::after {
+    content: '?';
+    font-family: 'Bebas Neue', cursive;
+    font-size: 3rem;
+    color: rgba(255,215,0,0.3);
+  }
+
+  .card-front {
+    transform: rotateY(180deg);
+    border: 2px solid;
+    padding: 8px 6px;
+    text-align: center;
+  }
+
+  .card-front.common { background: linear-gradient(135deg, #1a1a2e, #2a2a4e); border-color: var(--common); }
+  .card-front.uncommon { background: linear-gradient(135deg, #0a2a1a, #0a3a1a); border-color: var(--uncommon); }
+  .card-front.rare { background: linear-gradient(135deg, #0a1a3e, #0a1a5a); border-color: var(--rare); box-shadow: 0 0 20px rgba(68,136,255,0.3); }
+  .card-front.legendary { background: linear-gradient(135deg, #2a0a2a, #3a0a3a); border-color: var(--legendary); box-shadow: 0 0 30px rgba(255,68,204,0.4); animation: legendary-shimmer 2s infinite; }
+  .card-front.secret { background: linear-gradient(135deg, #2a2000, #3a2a00); border-color: var(--secret); box-shadow: 0 0 40px rgba(255,215,0,0.6); animation: legendary-shimmer 1.5s infinite; }
+
+  @keyframes legendary-shimmer {
+    0%, 100% { box-shadow: 0 0 30px rgba(255,68,204,0.4); }
+    50% { box-shadow: 0 0 60px rgba(255,68,204,0.8), 0 0 80px rgba(255,68,204,0.4); }
+  }
+
+  .card-pokemon { font-size: 2.4rem; }
+  .card-name { font-size: 0.6rem; font-weight: 900; letter-spacing: 0.5px; color: var(--text); text-transform: uppercase; }
+  .card-rarity-label { font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+
+  .card-rarity-label.common { color: var(--common); }
+  .card-rarity-label.uncommon { color: var(--uncommon); }
+  .card-rarity-label.rare { color: var(--rare); }
+  .card-rarity-label.legendary { color: var(--legendary); }
+  .card-rarity-label.secret { color: var(--secret); }
+
+  .reveal-all-btn, .keep-btn {
+    padding: 14px 40px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 1rem;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+
+  .reveal-all-btn { background: linear-gradient(135deg, var(--gold), var(--gold2)); color: #000; }
+  .reveal-all-btn:hover { transform: scale(1.05); }
+  .keep-btn { background: var(--surface2); color: var(--text); border: 1px solid rgba(255,255,255,0.15); margin-left: 12px; }
+  .keep-btn:hover { border-color: rgba(255,255,255,0.4); }
+
+  /* COLLECTION PAGE */
+  .collection-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+
+  .filter-btn.active, .filter-btn:hover { color: var(--text); }
+  .filter-btn.all.active { border-color: white; color: white; }
+  .filter-btn.common.active { border-color: var(--common); color: var(--common); }
+  .filter-btn.uncommon.active { border-color: var(--uncommon); color: var(--uncommon); }
+  .filter-btn.rare.active { border-color: var(--rare); color: var(--rare); }
+  .filter-btn.legendary.active { border-color: var(--legendary); color: var(--legendary); }
+  .filter-btn.secret.active { border-color: var(--secret); color: var(--secret); }
+
+  .collection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 16px;
+  }
+
+  .collection-card {
+    border-radius: 14px;
+    padding: 16px 12px;
+    text-align: center;
+    border: 2px solid;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .collection-card:hover { transform: translateY(-4px) scale(1.02); }
+
+  .collection-card.common { background: linear-gradient(135deg, #1a1a2e, #2a2a4e); border-color: var(--common); }
+  .collection-card.uncommon { background: linear-gradient(135deg, #0a2a1a, #0a3a1a); border-color: var(--uncommon); }
+  .collection-card.rare { background: linear-gradient(135deg, #0a1a3e, #0a1a5a); border-color: var(--rare); box-shadow: 0 0 15px rgba(68,136,255,0.2); }
+  .collection-card.legendary { background: linear-gradient(135deg, #2a0a2a, #3a0a3a); border-color: var(--legendary); box-shadow: 0 0 20px rgba(255,68,204,0.3); }
+  .collection-card.secret { background: linear-gradient(135deg, #2a2000, #3a2a00); border-color: var(--secret); box-shadow: 0 0 25px rgba(255,215,0,0.4); }
+
+  .coll-poke { font-size: 3rem; margin-bottom: 8px; }
+  .coll-name { font-size: 0.72rem; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .coll-rarity { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .coll-count {
+    position: absolute;
+    top: 6px; right: 8px;
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: var(--gold);
+    background: rgba(0,0,0,0.5);
+    padding: 2px 6px;
+    border-radius: 999px;
+  }
+
+  .empty-collection {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+  }
+
+  .empty-collection .empty-icon { font-size: 5rem; margin-bottom: 16px; }
+  .empty-collection p { font-size: 1.1rem; margin-bottom: 24px; }
+
+  .go-shop-btn {
+    padding: 12px 32px;
+    background: linear-gradient(135deg, var(--gold), var(--gold2));
+    border: none;
+    border-radius: 12px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #000;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+
+  .go-shop-btn:hover { transform: scale(1.05); }
+
+  /* MARKETPLACE */
+  .market-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .market-card {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 20px 16px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+
+  .market-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.2); }
+
+  .market-pokemon { font-size: 3.5rem; margin-bottom: 10px; }
+  .market-name { font-weight: 900; font-size: 0.9rem; margin-bottom: 6px; }
+  .market-seller { color: var(--muted); font-size: 0.75rem; margin-bottom: 12px; }
+
+  .market-price {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: 900;
+    font-size: 1.1rem;
+    color: var(--gold);
+    margin-bottom: 14px;
+  }
+
+  .market-buy-btn {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--gold), var(--gold2));
+    color: #000;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 0.85rem;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+
+  .market-buy-btn:hover { transform: scale(1.04); }
+
+  .sell-section {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 32px;
+  }
+
+  .sell-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+
+  .sell-desc { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; }
+
+  .sell-cards-grid {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .sellable-card {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--surface2);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+
+  .sellable-card:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface2);
+    border: 1px solid rgba(255,215,0,0.4);
+    border-radius: 14px;
+    padding: 14px 28px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 9999;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .stat-chip {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 12px 20px;
+    text-align: center;
+  }
+
+  .stat-num { font-family: 'Bebas Neue', cursive; font-size: 1.8rem; letter-spacing: 1px; }
+  .stat-label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+
+  .sparkle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9998;
+    font-size: 1.5rem;
+    animation: sparkle-fly 1s ease both;
+  }
+
+  @keyframes sparkle-fly {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(0.3); }
+  }
+
+  /* Buttons row in modal */
+  .modal-btns { display: flex; align-items: center; justify-content: center; margin-top: 8px; }
+  .close-modal { position: absolute; top: 20px; right: 24px; background: none; border: none; color: var(--muted); font-size: 1.5rem; cursor: pointer; }
+  .close-modal:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">⚡ PokéPacks</div>
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="showPage('shop', this)">🛍️ Shop</button>
+    <button class="tab-btn" onclick="showPage('collection', this)">📚 Collection</button>
+    <button class="tab-btn" onclick="showPage('marketplace', this)">🏪 Marketplace</button>
+  </div>
+  <div class="coins-display">🪙 <span id="coin-count">1,000</span></div>
+</nav>
+
+<!-- SHOP PAGE -->
+<div class="page active" id="shop">
+  <h1 class="page-title">PACK SHOP</h1>
+  <p class="page-subtitle">Choose a pack and discover what lies within...</p>
+
+  <div class="pack-grid">
+    <div class="pack-card basic" onclick="openPack('basic')">
+      <span class="pack-icon">📦</span>
+      <div class="pack-name">Basic Pack</div>
+      <div class="pack-desc">5 cards. Your journey starts here. Common and uncommon pulls await.</div>
+      <div class="pack-odds">
+        <span class="rarity-badge common">Common 60%</span>
+        <span class="rarity-badge uncommon">Uncommon 35%</span>
+        <span class="rarity-badge rare">Rare 5%</span>
+      </div>
+      <button class="buy-btn">🪙 100 Coins</button>
+    </div>
+
+    <div class="pack-card rare-pack" onclick="openPack('rare')">
+      <span class="pack-icon">✨</span>
+      <div class="pack-name">Rare Pack</div>
+      <div class="pack-desc">5 cards. Guaranteed at least one Rare. Something shiny awaits.</div>
+      <div class="pack-odds">
+        <span class="rarity-badge uncommon">Uncommon 40%</span>
+        <span class="rarity-badge rare">Rare 50%</span>
+        <span class="rarity-badge legendary">Legendary 10%</span>
+      </div>
+      <button class="buy-btn">🪙 300 Coins</button>
+    </div>
+
+    <div class="pack-card legendary-pack" onclick="openPack('legendary')">
+      <span class="pack-icon">💎</span>
+      <div class="pack-name">Legendary Pack</div>
+      <div class="pack-desc">5 cards. Legendary guaranteed. Chance at Secret Rare.</div>
+      <div class="pack-odds">
+        <span class="rarity-badge rare">Rare 40%</span>
+        <span class="rarity-badge legendary">Legendary 50%</span>
+        <span class="rarity-badge secret">Secret 10%</span>
+      </div>
+      <button class="buy-btn">🪙 750 Coins</button>
+    </div>
+
+    <div class="pack-card secret-pack" onclick="openPack('secret')">
+      <span class="pack-icon">🌟</span>
+      <div class="pack-name">Secret Pack</div>
+      <div class="pack-desc">5 cards. Ultra premium. All cards Legendary+. Highest Secret rates.</div>
+      <div class="pack-odds">
+        <span class="rarity-badge legendary">Legendary 60%</span>
+        <span class="rarity-badge secret">Secret 40%</span>
+      </div>
+      <button class="buy-btn">🪙 2,000 Coins</button>
+    </div>
+  </div>
+
+  <div style="margin-top: 48px; background: var(--surface); border-radius: 20px; padding: 28px; border: 1px solid rgba(255,215,0,0.2);">
+    <div class="sell-title">💳 BUY COINS</div>
+    <div class="sell-desc">Top up your coin balance to open more packs</div>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <button class="buy-btn" style="width:auto; padding: 12px 24px; background: linear-gradient(135deg, #4af,#06f); color:#fff; border-radius:12px;" onclick="buyCoins(500, 4.99)">500 🪙 — $4.99</button>
+      <button class="buy-btn" style="width:auto; padding: 12px 24px; background: linear-gradient(135deg, #88f,#44f); color:#fff; border-radius:12px;" onclick="buyCoins(1200, 9.99)">1,200 🪙 — $9.99</button>
+      <button class="buy-btn" style="width:auto; padding: 12px 24px; background: linear-gradient(135deg, #f4c,#a0f); color:#fff; border-radius:12px;" onclick="buyCoins(3000, 19.99)">3,000 🪙 — $19.99</button>
+      <button class="buy-btn" style="width:auto; padding: 12px 24px; background: linear-gradient(135deg, var(--gold),var(--gold2)); color:#000; border-radius:12px;" onclick="buyCoins(8000, 49.99)">8,000 🪙 — $49.99 🔥</button>
+    </div>
+  </div>
+</div>
+
+<!-- COLLECTION PAGE -->
+<div class="page" id="collection">
+  <h1 class="page-title">MY COLLECTION</h1>
+  <p class="page-subtitle">Cards you've pulled from packs</p>
+
+  <div class="stats-bar" id="coll-stats"></div>
+
+  <div class="collection-filters">
+    <button class="filter-btn all active" onclick="filterCollection('all', this)">All</button>
+    <button class="filter-btn common" onclick="filterCollection('common', this)">Common</button>
+    <button class="filter-btn uncommon" onclick="filterCollection('uncommon', this)">Uncommon</button>
+    <button class="filter-btn rare" onclick="filterCollection('rare', this)">Rare</button>
+    <button class="filter-btn legendary" onclick="filterCollection('legendary', this)">Legendary</button>
+    <button class="filter-btn secret" onclick="filterCollection('secret', this)">Secret</button>
+  </div>
+
+  <div class="collection-grid" id="collection-grid">
+    <div class="empty-collection" style="grid-column: 1/-1;">
+      <div class="empty-icon">📭</div>
+      <p>Your collection is empty. Open some packs!</p>
+      <button class="go-shop-btn" onclick="showPage('shop', document.querySelectorAll('.tab-btn')[0])">Go to Shop</button>
+    </div>
+  </div>
+</div>
+
+<!-- MARKETPLACE PAGE -->
+<div class="page" id="marketplace">
+  <h1 class="page-title">MARKETPLACE</h1>
+  <p class="page-subtitle">Buy and sell cards with other trainers</p>
+
+  <div class="sell-section" id="sell-section">
+    <div class="sell-title">📤 LIST A CARD FOR SALE</div>
+    <div class="sell-desc">Select a card from your collection to list</div>
+    <div class="sell-cards-grid" id="sell-cards-grid">
+      <span style="color: var(--muted); font-size:0.85rem;">No cards to sell yet — open some packs first!</span>
+    </div>
+  </div>
+
+  <h2 style="font-family: 'Bebas Neue'; font-size: 1.5rem; letter-spacing: 2px; margin-bottom: 20px; color: var(--muted);">🏪 LISTED CARDS</h2>
+  <div class="market-grid" id="market-grid"></div>
+</div>
+
+<!-- OPENING MODAL -->
+<div class="modal-overlay" id="opening-modal">
+  <div class="opening-stage" style="position:relative;">
+    <button class="close-modal" onclick="closeModal()">✕</button>
+
+    <div class="pack-reveal-container" id="pack-reveal">
+      <div class="opening-title" id="pack-title">OPENING PACK...</div>
+      <div class="giant-pack" id="giant-pack" onclick="startReveal()">📦</div>
+      <div class="click-hint">Click the pack to open!</div>
+    </div>
+
+    <div class="cards-reveal" id="cards-reveal">
+      <div class="opening-title">✨ YOUR CARDS ✨</div>
+      <div class="cards-row" id="cards-row"></div>
+      <div class="modal-btns">
+        <button class="reveal-all-btn" onclick="revealAll()">Reveal All</button>
+        <button class="keep-btn" onclick="keepCards()">Keep All & Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const POKEMON = [
+  { name: 'Pikachu', emoji: '⚡', rarity: 'uncommon' },
+  { name: 'Charizard', emoji: '🔥', rarity: 'legendary' },
+  { name: 'Bulbasaur', emoji: '🌿', rarity: 'common' },
+  { name: 'Squirtle', emoji: '💧', rarity: 'common' },
+  { name: 'Mewtwo', emoji: '🌀', rarity: 'legendary' },
+  { name: 'Gengar', emoji: '👻', rarity: 'rare' },
+  { name: 'Eevee', emoji: '🦊', rarity: 'uncommon' },
+  { name: 'Snorlax', emoji: '😴', rarity: 'uncommon' },
+  { name: 'Dragonite', emoji: '🐉', rarity: 'rare' },
+  { name: 'Mew', emoji: '✨', rarity: 'secret' },
+  { name: 'Jigglypuff', emoji: '🎵', rarity: 'common' },
+  { name: 'Machamp', emoji: '💪', rarity: 'uncommon' },
+  { name: 'Alakazam', emoji: '🥄', rarity: 'rare' },
+  { name: 'Gyarados', emoji: '🌊', rarity: 'rare' },
+  { name: 'Lugia', emoji: '🌬️', rarity: 'legendary' },
+  { name: 'Ho-Oh', emoji: '🌈', rarity: 'legendary' },
+  { name: 'Arceus', emoji: '🏛️', rarity: 'secret' },
+  { name: 'Rayquaza', emoji: '☁️', rarity: 'legendary' },
+  { name: 'Caterpie', emoji: '🐛', rarity: 'common' },
+  { name: 'Magikarp', emoji: '🐟', rarity: 'common' },
+  { name: 'Rattata', emoji: '🐭', rarity: 'common' },
+  { name: 'Pidgey', emoji: '🐦', rarity: 'common' },
+  { name: 'Psyduck', emoji: '🦆', rarity: 'uncommon' },
+  { name: 'Slowpoke', emoji: '🌸', rarity: 'uncommon' },
+  { name: 'Raichu', emoji: '⚡', rarity: 'rare' },
+  { name: 'Entei', emoji: '🔥', rarity: 'legendary' },
+  { name: 'Suicune', emoji: '💧', rarity: 'legendary' },
+  { name: 'Celebi', emoji: '🍀', rarity: 'secret' },
+  { name: 'Jirachi', emoji: '⭐', rarity: 'secret' },
+  { name: 'Deoxys', emoji: '👾', rarity: 'secret' },
+];
+
+const PACK_CONFIGS = {
+  basic:     { cost: 100, icon: '📦', name: 'Basic Pack',     table: [['common',60],['uncommon',35],['rare',5]] },
+  rare:      { cost: 300, icon: '✨', name: 'Rare Pack',      table: [['uncommon',40],['rare',50],['legendary',10]] },
+  legendary: { cost: 750, icon: '💎', name: 'Legendary Pack', table: [['rare',40],['legendary',50],['secret',10]] },
+  secret:    { cost: 2000,icon: '🌟', name: 'Secret Pack',    table: [['legendary',60],['secret',40]] },
+};
+
+let coins = 1000;
+let collection = {};
+let market = [];
+let currentPack = null;
+let currentCards = [];
+let revealedCount = 0;
+
+function rollRarity(table) {
+  const r = Math.random() * 100;
+  let cum = 0;
+  for (const [rarity, pct] of table) {
+    cum += pct;
+    if (r < cum) return rarity;
+  }
+  return table[table.length-1][0];
+}
+
+function getCardOfRarity(rarity) {
+  const pool = POKEMON.filter(p => p.rarity === rarity);
+  if (pool.length === 0) {
+    const fallback = POKEMON.filter(p => p.rarity === 'common');
+    return fallback[Math.floor(Math.random()*fallback.length)];
+  }
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function generateCards(packType) {
+  const cfg = PACK_CONFIGS[packType];
+  const cards = [];
+  for (let i = 0; i < 5; i++) {
+    const rarity = rollRarity(cfg.table);
+    cards.push(getCardOfRarity(rarity));
+  }
+  return cards;
+}
+
+function updateCoins() {
+  document.getElementById('coin-count').textContent = coins.toLocaleString();
+}
+
+function openPack(type) {
+  const cfg = PACK_CONFIGS[type];
+  if (coins < cfg.cost) {
+    showToast(`❌ Need ${cfg.cost.toLocaleString()} coins! Buy more coins below.`);
+    return;
+  }
+  coins -= cfg.cost;
+  updateCoins();
+  currentPack = type;
+  currentCards = generateCards(type);
+  revealedCount = 0;
+
+  document.getElementById('pack-reveal').style.display = 'flex';
+  document.getElementById('cards-reveal').classList.remove('active');
+  document.getElementById('pack-title').textContent = `OPENING ${cfg.name.toUpperCase()}...`;
+  document.getElementById('giant-pack').textContent = cfg.icon;
+
+  document.getElementById('opening-modal').classList.add('active');
+}
+
+function startReveal() {
+  document.getElementById('pack-reveal').style.display = 'none';
+  document.getElementById('cards-reveal').classList.add('active');
+
+  const row = document.getElementById('cards-row');
+  row.innerHTML = '';
+
+  currentCards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'reveal-card';
+    el.style.animationDelay = `${i * 0.1}s`;
+    el.innerHTML = `
+      <div class="card-back"></div>
+      <div class="card-front ${card.rarity}">
+        <div class="card-pokemon">${card.emoji}</div>
+        <div class="card-name">${card.name}</div>
+        <div class="card-rarity-label ${card.rarity}">${card.rarity}</div>
+      </div>`;
+    el.onclick = () => flipCard(el, i);
+    row.appendChild(el);
+  });
+}
+
+function flipCard(el, idx) {
+  if (el.classList.contains('flipped')) return;
+  el.classList.add('flipped');
+  revealedCount++;
+  const card = currentCards[idx];
+  if (card.rarity === 'legendary' || card.rarity === 'secret') spawnSparkles(el);
+}
+
+function revealAll() {
+  document.querySelectorAll('.reveal-card').forEach((el, i) => {
+    setTimeout(() => {
+      if (!el.classList.contains('flipped')) flipCard(el, i);
+    }, i * 120);
+  });
+}
+
+function keepCards() {
+  currentCards.forEach(card => {
+    const key = card.name;
+    if (!collection[key]) collection[key] = { ...card, count: 0 };
+    collection[key].count++;
+  });
+  closeModal();
+  renderCollection();
+  renderSellCards();
+  showToast(`✅ ${currentCards.length} cards added to collection!`);
+}
+
+function closeModal() {
+  document.getElementById('opening-modal').classList.remove('active');
+}
+
+function spawnSparkles(el) {
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  ['✨','⭐','💫','🌟','✨'].forEach((s, i) => {
+    const sp = document.createElement('div');
+    sp.className = 'sparkle';
+    sp.textContent = s;
+    sp.style.left = (cx + (Math.random()-0.5)*80) + 'px';
+    sp.style.top = (cy + (Math.random()-0.5)*80) + 'px';
+    sp.style.animationDelay = `${i*0.1}s`;
+    document.body.appendChild(sp);
+    setTimeout(() => sp.remove(), 1200);
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+
+  if (id === 'collection') renderCollection();
+  if (id === 'marketplace') { renderSellCards(); renderMarket(); }
+}
+
+function filterCollection(rarity, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCollection(rarity);
+}
+
+function renderCollection(filter = 'all') {
+  const grid = document.getElementById('collection-grid');
+  const cards = Object.values(collection).filter(c => filter === 'all' || c.rarity === filter);
+
+  // Stats
+  const stats = document.getElementById('coll-stats');
+  const total = Object.values(collection).reduce((a, c) => a + c.count, 0);
+  const unique = Object.keys(collection).length;
+  stats.innerHTML = `
+    <div class="stat-chip"><div class="stat-num" style="color:var(--gold)">${total}</div><div class="stat-label">Total Cards</div></div>
+    <div class="stat-chip"><div class="stat-num">${unique}</div><div class="stat-label">Unique</div></div>
+    <div class="stat-chip"><div class="stat-num" style="color:var(--legendary)">${Object.values(collection).filter(c=>c.rarity==='legendary'||c.rarity==='secret').reduce((a,c)=>a+c.count,0)}</div><div class="stat-label">Legendary+</div></div>
+  `;
+
+  if (cards.length === 0) {
+    grid.innerHTML = `<div class="empty-collection" style="grid-column:1/-1"><div class="empty-icon">📭</div><p>${filter === 'all' ? "Your collection is empty. Open some packs!" : `No ${filter} cards yet.`}</p><button class="go-shop-btn" onclick="showPage('shop', document.querySelectorAll('.tab-btn')[0])">Go to Shop</button></div>`;
+    return;
+  }
+
+  grid.innerHTML = cards.map(c => `
+    <div class="collection-card ${c.rarity}">
+      <div class="coll-count">x${c.count}</div>
+      <div class="coll-poke">${c.emoji}</div>
+      <div class="coll-name">${c.name}</div>
+      <div class="coll-rarity ${c.rarity}">${c.rarity}</div>
+    </div>
+  `).join('');
+}
+
+function renderSellCards() {
+  const grid = document.getElementById('sell-cards-grid');
+  const cards = Object.values(collection);
+  if (cards.length === 0) {
+    grid.innerHTML = '<span style="color: var(--muted); font-size:0.85rem;">No cards to sell yet — open some packs first!</span>';
+    return;
+  }
+  grid.innerHTML = cards.map(c => `
+    <div class="sellable-card" onclick="listForSale('${c.name}')">
+      ${c.emoji} ${c.name} <span style="color:var(--muted); font-size:0.7rem;">(x${c.count})</span>
+    </div>
+  `).join('');
+}
+
+const RARITY_PRICES = { common: 10, uncommon: 30, rare: 100, legendary: 400, secret: 1200 };
+
+function listForSale(cardName) {
+  const card = collection[cardName];
+  if (!card || card.count === 0) return;
+
+  card.count--;
+  if (card.count === 0) delete collection[cardName];
+
+  const price = RARITY_PRICES[card.rarity] + Math.floor(Math.random() * RARITY_PRICES[card.rarity] * 0.5);
+  market.push({ ...card, price, seller: 'You', id: Date.now() });
+
+  renderSellCards();
+  renderMarket();
+  showToast(`📤 ${card.name} listed for 🪙${price}!`);
+}
+
+// Seed market with AI sellers
+function seedMarket() {
+  const sellers = ['Ash_K', 'MistyW', 'Brock99', 'GaryO', 'TrainerRed'];
+  [
+    { name:'Charizard', emoji:'🔥', rarity:'legendary' },
+    { name:'Mewtwo', emoji:'🌀', rarity:'legendary' },
+    { name:'Gengar', emoji:'👻', rarity:'rare' },
+    { name:'Pikachu', emoji:'⚡', rarity:'uncommon' },
+    { name:'Mew', emoji:'✨', rarity:'secret' },
+    { name:'Gyarados', emoji:'🌊', rarity:'rare' },
+    { name:'Alakazam', emoji:'🥄', rarity:'rare' },
+  ].forEach((c, i) => {
+    const price = RARITY_PRICES[c.rarity] + Math.floor(Math.random() * RARITY_PRICES[c.rarity] * 0.8);
+    market.push({ ...c, price, seller: sellers[i % sellers.length], id: 1000 + i });
+  });
+}
+
+function renderMarket() {
+  const grid = document.getElementById('market-grid');
+  if (market.length === 0) {
+    grid.innerHTML = '<p style="color:var(--muted)">No cards listed yet. Be the first to sell!</p>';
+    return;
+  }
+  grid.innerHTML = market.map(c => `
+    <div class="market-card">
+      <div class="market-pokemon">${c.emoji}</div>
+      <div class="market-name">${c.name}</div>
+      <div style="margin-bottom:4px;"><span class="rarity-badge ${c.rarity}">${c.rarity}</span></div>
+      <div class="market-seller">Seller: ${c.seller}</div>
+      <div class="market-price">🪙 ${c.price.toLocaleString()}</div>
+      <button class="market-buy-btn" onclick="buyFromMarket(${c.id})">Buy Now</button>
+    </div>
+  `).join('');
+}
+
+function buyFromMarket(id) {
+  const idx = market.findIndex(m => m.id === id);
+  if (idx === -1) return;
+  const item = market[idx];
+  if (coins < item.price) { showToast('❌ Not enough coins!'); return; }
+  coins -= item.price;
+  updateCoins();
+  market.splice(idx, 1);
+
+  if (!collection[item.name]) collection[item.name] = { ...item, count: 0 };
+  collection[item.name].count++;
+
+  renderMarket();
+  renderCollection();
+  renderSellCards();
+  showToast(`✅ Bought ${item.name} for 🪙${item.price}!`);
+}
+
+function buyCoins(amount, price) {
+  // Simulated purchase
+  coins += amount;
+  updateCoins();
+  showToast(`✅ +${amount.toLocaleString()} coins added! (Simulated $${price} purchase)`);
+}
+
+// Init
+seedMarket();
+updateCoins();
+
+// ── PWA: Register Service Worker ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW registered'))
+      .catch(err => console.log('SW failed:', err));
+  });
+}
+
+// ── PWA: Install Prompt Banner ──
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const banner = document.createElement('div');
+  banner.innerHTML = `
+    <div id="install-banner" style="
+      position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+      background:linear-gradient(135deg,#1a1a2e,#22223a);
+      border:1px solid rgba(255,215,0,0.4);border-radius:16px;
+      padding:16px 24px;display:flex;align-items:center;gap:16px;
+      z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.5);
+      font-family:'Nunito',sans-serif;max-width:340px;width:90%;
+    ">
+      <span style="font-size:2rem;">⚡</span>
+      <div style="flex:1">
+        <div style="font-weight:900;font-size:0.95rem;color:#f0f0ff;">Install PokéPacks</div>
+        <div style="font-size:0.78rem;color:#8888aa;">Add to home screen for the full app experience</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button id="pwa-yes" style="background:linear-gradient(135deg,#FFD700,#FFA500);border:none;border-radius:8px;padding:7px 14px;font-weight:900;font-size:0.8rem;cursor:pointer;color:#000;">Install</button>
+        <button id="pwa-no" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:6px 14px;font-weight:700;font-size:0.75rem;cursor:pointer;color:#8888aa;">Later</button>
+      </div>
+    </div>`;
+  document.body.appendChild(banner);
+  document.getElementById('pwa-yes').onclick = async () => {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') showToast('✅ PokéPacks installed!');
+    banner.remove(); deferredPrompt = null;
+  };
+  document.getElementById('pwa-no').onclick = () => banner.remove();
+});
+window.addEventListener('appinstalled', () => showToast('🎉 PokéPacks installed!'));
+
+</script>
+</body>
+</html>
